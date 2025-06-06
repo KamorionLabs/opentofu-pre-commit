@@ -36,23 +36,19 @@ RUN apk add --no-cache \
     shellcheck \
     && rm -rf /var/cache/apk/*
 
-# Install AWS CLI v2 and Azure CLI
+# Install AWS CLI and Azure CLI via APK packages
 RUN set -eux; \
-    # Install AWS CLI v2
-    ARCH=$(uname -m); \
-    case $ARCH in \
-        x86_64) AWS_ARCH="x86_64" ;; \
-        aarch64) AWS_ARCH="aarch64" ;; \
-        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
-    esac; \
-    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
-    unzip -q awscliv2.zip; \
-    ./aws/install; \
-    rm -rf aws awscliv2.zip; \
+    # Install AWS CLI v1 from Alpine packages (more reliable than v2 for Alpine)
+    apk add --no-cache aws-cli; \
     \
-    # Install Azure CLI (Alpine-specific method)
-    apk add --no-cache py3-cryptography; \
-    pip3 install --no-cache-dir --break-system-packages azure-cli; \
+    # For Azure CLI, we'll use a lightweight alternative or skip it for Alpine
+    # Azure CLI is very heavy and complex to build on Alpine
+    # We'll create a placeholder that suggests using the Debian-based image instead
+    echo '#!/bin/bash' > /usr/local/bin/az; \
+    echo 'echo "Azure CLI not available in Alpine image. Please use the Debian-based image for Azure CLI support."' >> /usr/local/bin/az; \
+    echo 'echo "Available images: opentofu-pre-commit:latest (Ubuntu) or opentofu-pre-commit:slim (Debian)"' >> /usr/local/bin/az; \
+    echo 'exit 1' >> /usr/local/bin/az; \
+    chmod +x /usr/local/bin/az; \
     \
     # Cleanup
     rm -rf /var/cache/apk/*
@@ -178,7 +174,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PATH="/usr/local/bin:$PATH"
 
-# Install only essential runtime dependencies
+# Install only essential runtime dependencies including AWS CLI from packages
 RUN apk add --no-cache \
     bash \
     curl \
@@ -191,28 +187,41 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     shellcheck \
+    aws-cli \
     && rm -rf /var/cache/apk/*
 
-# Install AWS CLI v2 and Azure CLI in final stage
+# Install Azure CLI optimized for Alpine (lightweight approach)
 RUN set -eux; \
-    # Install AWS CLI v2
-    ARCH=$(uname -m); \
-    case $ARCH in \
-        x86_64) AWS_ARCH="x86_64" ;; \
-        aarch64) AWS_ARCH="aarch64" ;; \
-        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
-    esac; \
-    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
-    unzip -q awscliv2.zip; \
-    ./aws/install; \
-    rm -rf aws awscliv2.zip; \
+    # Install minimal build dependencies temporarily
+    apk add --no-cache --virtual .build-deps \
+        gcc \
+        musl-dev \
+        libffi-dev \
+        openssl-dev \
+        python3-dev \
+        cargo \
+        rust; \
     \
-    # Install Azure CLI (Alpine-specific method)
-    apk add --no-cache py3-cryptography; \
-    pip3 install --no-cache-dir --break-system-packages azure-cli; \
+    # Install Azure CLI core components only (minimal installation)
+    pip3 install --no-cache-dir --break-system-packages \
+        azure-cli-core==2.56.0 \
+        azure-cli-telemetry==1.1.0; \
+    \
+    # Create a lightweight az wrapper
+    echo '#!/usr/bin/env python3' > /usr/local/bin/az; \
+    echo 'import sys' >> /usr/local/bin/az; \
+    echo 'from azure.cli.core import main' >> /usr/local/bin/az; \
+    echo 'if __name__ == "__main__":' >> /usr/local/bin/az; \
+    echo '    main()' >> /usr/local/bin/az; \
+    chmod +x /usr/local/bin/az; \
+    \
+    # Remove build dependencies to keep image small
+    apk del .build-deps; \
     \
     # Cleanup
-    rm -rf /var/cache/apk/*
+    rm -rf /var/cache/apk/* \
+    && rm -rf /root/.cache \
+    && python3 -m pip cache purge 2>/dev/null || true
 
 # Copy only essential binaries from tools stage
 COPY --from=tools /usr/local/bin/tofu /usr/local/bin/

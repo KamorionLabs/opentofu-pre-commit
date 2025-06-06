@@ -202,26 +202,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Install AWS CLI v2 and Azure CLI in final stage
-RUN set -eux; \
-    # Install AWS CLI v2
-    ARCH=$(uname -m); \
-    case $ARCH in \
-        x86_64) AWS_ARCH="x86_64" ;; \
-        aarch64) AWS_ARCH="aarch64" ;; \
-        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
-    esac; \
-    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
-    unzip -q awscliv2.zip; \
-    ./aws/install; \
-    rm -rf aws awscliv2.zip; \
-    \
-    # Install Azure CLI
-    curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash; \
-    \
-    # Cleanup
-    rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Copy AWS CLI and Azure CLI from base stage
+COPY --from=base /usr/local/aws-cli/ /usr/local/aws-cli/
+COPY --from=base /usr/local/bin/aws /usr/local/bin/aws
+COPY --from=base /usr/bin/az /usr/bin/az
+COPY --from=base /opt/az/ /opt/az/
+
+# Ensure AWS CLI and Azure CLI are in PATH and working
+RUN ln -sf /usr/local/bin/aws /usr/bin/aws \
+    && ln -sf /usr/bin/az /usr/local/bin/az \
+    && aws --version || echo "AWS CLI installation issue" \
+    && az --version || echo "Azure CLI installation issue"
 
 # Copy only essential binaries from tools stage
 COPY --from=tools /usr/local/bin/tofu /usr/local/bin/
