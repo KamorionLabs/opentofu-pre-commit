@@ -1,4 +1,4 @@
-d# OpenTofu Infrastructure Pipeline Container - Ultra Optimized Alpine
+# OpenTofu Infrastructure Pipeline Container - Ultra Optimized Alpine
 # Multi-stage build for minimal size and maximum performance
 FROM alpine:3.19 AS base
 
