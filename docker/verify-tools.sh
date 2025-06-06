@@ -55,6 +55,15 @@ echo -e "${YELLOW}Node.js Tools:${NC}"
 test_tool "Markdownlint" "markdownlint-cli2 --version"
 
 echo ""
+echo -e "${YELLOW}Cloud CLI Tools:${NC}"
+test_tool "AWS CLI" "aws --version"
+test_tool "Azure CLI" "az --version"
+
+echo ""
+echo -e "${YELLOW}Shell Tools:${NC}"
+test_tool "Shellcheck" "shellcheck --version"
+
+echo ""
 echo -e "${YELLOW}System Tools:${NC}"
 test_tool "Git" "git --version"
 test_tool "Curl" "curl --version"

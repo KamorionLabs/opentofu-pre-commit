@@ -17,6 +17,7 @@ ARG TFLINT_VERSION=0.50.3
 ARG TRIVY_VERSION=0.50.1
 ARG SHFMT_VERSION=3.7.0
 ARG GITLEAKS_VERSION=8.18.0
+ARG SHELLCHECK_VERSION=0.9.0
 
 # Install minimal system dependencies
 RUN apk add --no-cache \
@@ -32,7 +33,29 @@ RUN apk add --no-cache \
     gnupg \
     nodejs \
     npm \
+    shellcheck \
     && rm -rf /var/cache/apk/*
+
+# Install AWS CLI v2 and Azure CLI
+RUN set -eux; \
+    # Install AWS CLI v2
+    ARCH=$(uname -m); \
+    case $ARCH in \
+        x86_64) AWS_ARCH="x86_64" ;; \
+        aarch64) AWS_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
+    unzip -q awscliv2.zip; \
+    ./aws/install; \
+    rm -rf aws awscliv2.zip; \
+    \
+    # Install Azure CLI (Alpine-specific method)
+    apk add --no-cache py3-cryptography; \
+    pip3 install --no-cache-dir --break-system-packages azure-cli; \
+    \
+    # Cleanup
+    rm -rf /var/cache/apk/*
 
 # Install tools stage - optimized for size
 FROM base AS tools
@@ -166,7 +189,29 @@ RUN apk add --no-cache \
     ca-certificates \
     nodejs \
     npm \
+    shellcheck \
     && rm -rf /var/cache/apk/*
+
+# Install AWS CLI v2 and Azure CLI in final stage
+RUN set -eux; \
+    # Install AWS CLI v2
+    ARCH=$(uname -m); \
+    case $ARCH in \
+        x86_64) AWS_ARCH="x86_64" ;; \
+        aarch64) AWS_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
+    unzip -q awscliv2.zip; \
+    ./aws/install; \
+    rm -rf aws awscliv2.zip; \
+    \
+    # Install Azure CLI (Alpine-specific method)
+    apk add --no-cache py3-cryptography; \
+    pip3 install --no-cache-dir --break-system-packages azure-cli; \
+    \
+    # Cleanup
+    rm -rf /var/cache/apk/*
 
 # Copy only essential binaries from tools stage
 COPY --from=tools /usr/local/bin/tofu /usr/local/bin/
@@ -257,7 +302,7 @@ LABEL maintainer="DevOps Team" \
       description="Ultra-optimized Alpine-based OpenTofu infrastructure tools for Azure DevOps" \
       version="2.0.0" \
       base-image="alpine:3.19" \
-      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit" \
+      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit,aws-cli,azure-cli,shellcheck" \
       optimization="size-optimized-alpine"
 
 # Default command

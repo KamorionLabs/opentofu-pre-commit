@@ -17,6 +17,7 @@ ARG TFLINT_VERSION=0.50.3
 ARG TRIVY_VERSION=0.50.1
 ARG SHFMT_VERSION=3.7.0
 ARG GITLEAKS_VERSION=8.18.0
+ARG SHELLCHECK_VERSION=0.9.0
 
 # Install minimal system dependencies in one layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,7 +32,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     npm \
     binutils \
+    shellcheck \
+    gnupg \
     && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install AWS CLI v2 and Azure CLI
+RUN set -eux; \
+    # Install AWS CLI v2
+    ARCH=$(uname -m); \
+    case $ARCH in \
+        x86_64) AWS_ARCH="x86_64" ;; \
+        aarch64) AWS_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
+    unzip -q awscliv2.zip; \
+    ./aws/install; \
+    rm -rf aws awscliv2.zip; \
+    \
+    # Install Azure CLI
+    curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash; \
+    \
+    # Cleanup
+    rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
 # Install tools stage - optimized for size
@@ -172,7 +196,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     nodejs \
     npm \
+    shellcheck \
+    gnupg \
     && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install AWS CLI v2 and Azure CLI in final stage
+RUN set -eux; \
+    # Install AWS CLI v2
+    ARCH=$(uname -m); \
+    case $ARCH in \
+        x86_64) AWS_ARCH="x86_64" ;; \
+        aarch64) AWS_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
+    unzip -q awscliv2.zip; \
+    ./aws/install; \
+    rm -rf aws awscliv2.zip; \
+    \
+    # Install Azure CLI
+    curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash; \
+    \
+    # Cleanup
+    rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
 # Copy only essential binaries from tools stage
@@ -262,7 +309,7 @@ LABEL maintainer="DevOps Team" \
       description="Ultra-slim Debian-based OpenTofu infrastructure tools for Azure DevOps" \
       version="2.3.0" \
       base-image="debian:bookworm-slim" \
-      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit" \
+      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit,aws-cli,azure-cli,shellcheck" \
       optimization="ultra-optimized-debian-enhanced"
 
 # Default command

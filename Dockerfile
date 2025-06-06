@@ -17,6 +17,7 @@ ARG TFLINT_VERSION=0.50.3
 ARG TRIVY_VERSION=0.50.1
 ARG SHFMT_VERSION=3.7.0
 ARG GITLEAKS_VERSION=8.18.0
+ARG SHELLCHECK_VERSION=0.9.0
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,8 +33,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     nodejs \
     npm \
+    shellcheck \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
+
+# Install AWS CLI v2
+RUN set -eux; \
+    ARCH=$(dpkg --print-architecture); \
+    case $ARCH in \
+        amd64) AWS_ARCH="x86_64" ;; \
+        arm64) AWS_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
+    unzip -q awscliv2.zip; \
+    ./aws/install; \
+    rm -rf aws awscliv2.zip
+
+# Install Azure CLI
+RUN set -eux; \
+    curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash
 
 # Install binary tools
 RUN set -eux; \
@@ -152,7 +171,7 @@ LABEL maintainer="DevOps Team" \
       description="Standard Ubuntu-based OpenTofu infrastructure tools for Azure DevOps" \
       version="1.0.0" \
       base-image="ubuntu:22.04" \
-      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit"
+      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit,aws-cli,azure-cli,shellcheck"
 
 # Default command
 CMD ["/bin/bash"]
