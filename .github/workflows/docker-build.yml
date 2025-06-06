@@ -1,11 +1,12 @@
+---
 name: Build and Push Docker Images
 
-on:
+"on":
   push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
+    branches: [main, develop]
+    tags: ['v*']
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
     # Build weekly on Sundays at 2 AM UTC
     - cron: '0 2 * * 0'
@@ -13,7 +14,7 @@ on:
 env:
   # GitHub Container Registry
   GHCR_REGISTRY: ghcr.io
-  GHCR_IMAGE_NAME: ${{ github.repository }}
+  GHCR_IMAGE_NAME: ${{ github.repository_owner }}/opentofu-pre-commit
   # Docker Hub
   DOCKERHUB_REGISTRY: docker.io
   DOCKERHUB_IMAGE_NAME: ${{ vars.DOCKERHUB_REPO }}/opentofu-pre-commit
@@ -59,70 +60,70 @@ jobs:
       packages: write
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Log in to GitHub Container Registry
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.GHCR_REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Log in to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.DOCKERHUB_REGISTRY }}
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Extract metadata for GHCR
-      id: meta-ghcr
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}
-        tags: ${{ matrix.variant.tags }}
-        labels: |
-          org.opencontainers.image.title=OpenTofu Pre-commit Tools (${{ matrix.variant.name }})
-          org.opencontainers.image.description=Comprehensive OpenTofu infrastructure tools for CI/CD pipelines
-          org.opencontainers.image.vendor=DevOps Team
-          variant=${{ matrix.variant.name }}
+      - name: Extract metadata for GHCR
+        id: meta-ghcr
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}
+          tags: ${{ matrix.variant.tags }}
+          labels: |
+            org.opencontainers.image.title=OpenTofu Pre-commit Tools (${{ matrix.variant.name }})
+            org.opencontainers.image.description=Comprehensive OpenTofu infrastructure tools for CI/CD pipelines
+            org.opencontainers.image.vendor=DevOps Team
+            variant=${{ matrix.variant.name }}
 
-    - name: Extract metadata for Docker Hub
-      id: meta-dockerhub
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.DOCKERHUB_IMAGE_NAME }}
-        tags: ${{ matrix.variant.tags }}
-        labels: |
-          org.opencontainers.image.title=OpenTofu Pre-commit Tools (${{ matrix.variant.name }})
-          org.opencontainers.image.description=Comprehensive OpenTofu infrastructure tools for CI/CD pipelines
-          org.opencontainers.image.vendor=DevOps Team
-          variant=${{ matrix.variant.name }}
+      - name: Extract metadata for Docker Hub
+        id: meta-dockerhub
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_IMAGE_NAME }}
+          tags: ${{ matrix.variant.tags }}
+          labels: |
+            org.opencontainers.image.title=OpenTofu Pre-commit Tools (${{ matrix.variant.name }})
+            org.opencontainers.image.description=Comprehensive OpenTofu infrastructure tools for CI/CD pipelines
+            org.opencontainers.image.vendor=DevOps Team
+            variant=${{ matrix.variant.name }}
 
-    - name: Build and push to both registries
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ${{ matrix.variant.dockerfile }}
-        platforms: ${{ matrix.variant.platforms }}
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: |
-          ${{ steps.meta-ghcr.outputs.tags }}
-          ${{ steps.meta-dockerhub.outputs.tags }}
-        labels: ${{ steps.meta-ghcr.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          BUILDKIT_INLINE_CACHE=1
+      - name: Build and push to both registries
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.variant.dockerfile }}
+          platforms: ${{ matrix.variant.platforms }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ steps.meta-ghcr.outputs.tags }}
+            ${{ steps.meta-dockerhub.outputs.tags }}
+          labels: ${{ steps.meta-ghcr.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   test:
     runs-on: ubuntu-latest
@@ -131,32 +132,34 @@ jobs:
     strategy:
       matrix:
         variant: [ubuntu, alpine, slim]
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build test image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: Dockerfile${{ matrix.variant == 'ubuntu' && '' || format('.{0}', matrix.variant) }}
-        load: true
-        tags: test-image:${{ matrix.variant }}
-        cache-from: type=gha
+      - name: Build test image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: >-
+            Dockerfile${{ matrix.variant == 'ubuntu' && '' ||
+            format('.{0}', matrix.variant) }}
+          load: true
+          tags: test-image:${{ matrix.variant }}
+          cache-from: type=gha
 
-    - name: Test tools installation
-      run: |
-        echo "Testing ${{ matrix.variant }} variant..."
-        docker run --rm test-image:${{ matrix.variant }} verify-tools.sh
+      - name: Test tools installation
+        run: |
+          echo "Testing ${{ matrix.variant }} variant..."
+          docker run --rm test-image:${{ matrix.variant }} verify-tools.sh
 
-    - name: Test plugin cache
-      run: |
-        echo "Testing plugin cache for ${{ matrix.variant }} variant..."
-        docker run --rm test-image:${{ matrix.variant }} test-plugin-cache.sh
+      - name: Test plugin cache
+        run: |
+          echo "Testing plugin cache for ${{ matrix.variant }} variant..."
+          docker run --rm test-image:${{ matrix.variant }} test-plugin-cache.sh
 
   security-scan:
     runs-on: ubuntu-latest
@@ -168,74 +171,77 @@ jobs:
         registry: [ghcr, dockerhub]
 
     steps:
-    - name: Set image reference
-      id: image-ref
-      run: |
-        if [ "${{ matrix.registry }}" = "ghcr" ]; then
-          if [ "${{ matrix.variant }}" = "ubuntu" ]; then
-            echo "image-ref=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+      - name: Set image reference
+        id: image-ref
+        run: |
+          if [ "${{ matrix.registry }}" = "ghcr" ]; then
+            if [ "${{ matrix.variant }}" = "ubuntu" ]; then
+              echo "image-ref=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+            else
+              echo "image-ref=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${{ matrix.variant }}" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "image-ref=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${{ matrix.variant }}" >> $GITHUB_OUTPUT
+            if [ "${{ matrix.variant }}" = "ubuntu" ]; then
+              echo "image-ref=${{ env.DOCKERHUB_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+            else
+              echo "image-ref=${{ env.DOCKERHUB_IMAGE_NAME }}:${{ matrix.variant }}" >> $GITHUB_OUTPUT
+            fi
           fi
-        else
-          if [ "${{ matrix.variant }}" = "ubuntu" ]; then
-            echo "image-ref=${{ env.DOCKERHUB_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          else
-            echo "image-ref=${{ env.DOCKERHUB_IMAGE_NAME }}:${{ matrix.variant }}" >> $GITHUB_OUTPUT
-          fi
-        fi
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ steps.image-ref.outputs.image-ref }}
-        format: 'sarif'
-        output: 'trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif'
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.image-ref.outputs.image-ref }}
+          format: 'sarif'
+          output: >-
+            trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: >-
+            trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif
 
   update-readme:
     runs-on: ubuntu-latest
     needs: [build, test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Update README with latest tags
-      run: |
-        # Update README.md with latest image information
-        DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        sed -i "s/Last updated: .*/Last updated: $DATE/" README.md || true
-        
-        # Commit changes if any
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add README.md || true
-        git diff --staged --quiet || git commit -m "docs: update README with latest build info [skip ci]" || true
-        git push || true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update README with latest tags
+        run: |
+          # Update README.md with latest image information
+          DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          sed -i "s/Last updated: .*/Last updated: $DATE/" README.md || true
+
+          # Commit changes if any
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md || true
+          git diff --staged --quiet || git commit \
+            -m "docs: update README with latest build info [skip ci]" || true
+          git push || true
 
   notify:
     runs-on: ubuntu-latest
     needs: [build, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+
     steps:
-    - name: Notify successful deployment
-      run: |
-        echo "🎉 Docker images successfully built and pushed to:"
-        echo "📦 GitHub Container Registry: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
-        echo "🐳 Docker Hub: ${{ env.DOCKERHUB_IMAGE_NAME }}"
-        echo ""
-        echo "Available tags:"
-        echo "- latest (Ubuntu)"
-        echo "- ubuntu"
-        echo "- alpine"
-        echo "- slim"
+      - name: Notify successful deployment
+        run: |
+          echo "🎉 Docker images successfully built and pushed to:"
+          echo "📦 GitHub Container Registry: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
+          echo "🐳 Docker Hub: ${{ env.DOCKERHUB_IMAGE_NAME }}"
+          echo ""
+          echo "Available tags:"
+          echo "- latest (Ubuntu)"
+          echo "- ubuntu"
+          echo "- alpine"
+          echo "- slim"
