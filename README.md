@@ -80,6 +80,7 @@ docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:slim
 - **Shfmt** v3.7.0 - Shell script formatter
 
 ### Security & Quality Tools
+- **Pre-commit** v3.6.0 - Git hooks framework (with pre-cached hooks)
 - **Checkov** v3.2.0 - Infrastructure security scanner
 - **Gitleaks** v8.18.0 - Secret detection
 - **Yamllint** v1.35.0 - YAML linter
@@ -134,6 +135,28 @@ docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest shfmt -
 
 # Generate documentation
 docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest terraform-docs .
+```
+
+### Pre-commit Integration
+
+```bash
+# Use the built-in pre-commit helper
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper help
+
+# Install pre-commit hooks in your project
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper install
+
+# Run pre-commit on all files
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper run
+
+# Run pre-commit on staged files only
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper run-staged
+
+# Update pre-commit hooks
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper update
+
+# Validate pre-commit configuration
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper validate
 ```
 
 ### Development Mode

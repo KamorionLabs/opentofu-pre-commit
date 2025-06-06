@@ -92,6 +92,7 @@ RUN set -eux; \
     \
     # Install Python tools
     pip3 install --no-cache-dir \
+        pre-commit==3.6.0 \
         checkov==3.2.0 \
         yamllint==1.35.0 \
         typos==1.16.0; \
@@ -108,13 +109,26 @@ RUN set -eux; \
     npm cache clean --force 2>/dev/null || true; \
     python3 -m pip cache purge 2>/dev/null || true
 
-# Copy helper scripts
+# Copy helper scripts and configuration
 COPY docker/verify-tools.sh /usr/local/bin/verify-tools.sh
 COPY docker/dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
 COPY docker/dev-mode.sh /usr/local/bin/dev-mode.sh
 COPY docker/fix-permissions.sh /usr/local/bin/fix-permissions.sh
 COPY docker/azure-devops-entrypoint.sh /usr/local/bin/azure-devops-entrypoint.sh
 COPY docker/test-plugin-cache.sh /usr/local/bin/test-plugin-cache.sh
+COPY docker/pre-commit-helper.sh /usr/local/bin/pre-commit-helper.sh
+COPY .pre-commit-config.yaml /workspace/.pre-commit-config.yaml
+
+# Pre-install pre-commit hooks to speed up first usage
+RUN cd /workspace \
+    && git init \
+    && git config user.email "docker@example.com" \
+    && git config user.name "Docker Build" \
+    && git add .pre-commit-config.yaml \
+    && git commit -m "Initial commit for pre-commit cache" \
+    && pre-commit install-hooks \
+    && rm -rf .git \
+    && echo "Pre-commit hooks cached successfully"
 
 # Create Azure DevOps user and setup permissions
 RUN groupadd -g 1001 docker_azpcontainer \
@@ -127,7 +141,8 @@ RUN groupadd -g 1001 docker_azpcontainer \
     && ln -sf /usr/local/bin/dev-entrypoint.sh /usr/local/bin/dev-entrypoint \
     && ln -sf /usr/local/bin/fix-permissions.sh /usr/local/bin/fix-permissions \
     && ln -sf /usr/local/bin/azure-devops-entrypoint.sh /usr/local/bin/azure-devops-entrypoint \
-    && ln -sf /usr/local/bin/test-plugin-cache.sh /usr/local/bin/test-plugin-cache
+    && ln -sf /usr/local/bin/test-plugin-cache.sh /usr/local/bin/test-plugin-cache \
+    && ln -sf /usr/local/bin/pre-commit-helper.sh /usr/local/bin/pre-commit-helper
 
 # Set working directory
 WORKDIR /workspace
@@ -137,7 +152,7 @@ LABEL maintainer="DevOps Team" \
       description="Standard Ubuntu-based OpenTofu infrastructure tools for Azure DevOps" \
       version="1.0.0" \
       base-image="ubuntu:22.04" \
-      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt"
+      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit"
 
 # Default command
 CMD ["/bin/bash"]

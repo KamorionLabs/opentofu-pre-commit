@@ -45,6 +45,7 @@ test_tool "Gitleaks" "gitleaks version"
 
 echo ""
 echo -e "${YELLOW}Python Tools:${NC}"
+test_tool "Pre-commit" "pre-commit --version"
 test_tool "Checkov" "checkov --version"
 test_tool "Yamllint" "yamllint --version"
 test_tool "Typos" "typos --version"

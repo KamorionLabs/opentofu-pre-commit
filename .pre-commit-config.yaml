@@ -1,0 +1,155 @@
+---
+# Configuration pre-commit pour OpenTofu/Terraform
+# Basée sur la configuration NewHorizon-IaC-AWS
+
+default_language_version:
+  python: python3
+
+exclude: |
+  (?x)^(
+    \.terraform/.*|
+    \.git/.*|
+    \.tflint\.d/.*|
+    node_modules/.*|
+    \.cache/.*|
+    .*\.lock.*|
+    .*\.tmp.*
+  )$
+
+repos:
+  # Maintain pre-commit version dependencies
+  - repo: https://github.com/mxr/sync-pre-commit-deps
+    rev: v0.0.1
+    hooks:
+      - id: sync-pre-commit-deps
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # Trims trailing whitespace
+      - id: trailing-whitespace
+      # Validates YAML files
+      - id: check-yaml
+        args:
+          - --allow-multiple-documents
+      # Validates JSON files
+      - id: check-json
+      # Validates TOML files
+      - id: check-toml
+      # Checks for files that are added to the repository that are larger
+      # than a threshold
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      # Checks for files that would conflict in case-insensitive filesystems
+      - id: check-case-conflict
+      # Checks for files that contain merge conflict strings
+      - id: check-merge-conflict
+      # Check for the existence of private keys
+      - id: detect-private-key
+      # Checks that executables have shebangs
+      - id: check-executables-have-shebangs
+      # Makes sure files end in a newline and only a newline
+      - id: end-of-file-fixer
+        exclude: ^\.terraform/.*
+
+  # Fix common typos
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.16.23
+    hooks:
+      - id: typos
+
+  # Check for sensitive data
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+  # Shell script checks
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      # Shell scripts conform to shellcheck
+      - id: shellcheck
+      # Check shell style with shfmt
+      - id: shfmt
+        args: ['-l', '-i', '2', '-ci']
+
+  # Markdown syntax
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.11.0
+    hooks:
+      - id: markdownlint-cli2
+
+  # YAML syntax
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+
+  # OpenTofu/Terraform specific checks
+  - repo: https://github.com/tofuutils/pre-commit-opentofu
+    rev: v2.2.1
+    hooks:
+      - id: tofu_fmt
+        files: \.tf$
+
+      - id: tofu_validate
+        files: \.tf$
+        args:
+          - --hook-config=--retry-once-with-cleanup=true
+
+      # TFLint for OpenTofu/Terraform
+      - id: tofu_tflint
+        args:
+          # Pass TFLint config inline instead of file
+          # - --args=--enable-plugin=aws
+          - --args=--enable-rule=terraform_deprecated_interpolation
+          - --args=--enable-rule=terraform_deprecated_index
+          - --args=--enable-rule=terraform_unused_declarations
+          - --args=--enable-rule=terraform_comment_syntax
+          - --args=--enable-rule=terraform_documented_outputs
+          - --args=--enable-rule=terraform_documented_variables
+          - --args=--enable-rule=terraform_typed_variables
+          - --args=--enable-rule=terraform_module_pinned_source
+          - --args=--enable-rule=terraform_naming_convention
+          # - --args=--enable-rule=terraform_standard_module_structure
+          # Disable rules that conflict with OpenTofu for_each multi provider
+          # support
+          - --args=--disable-rule=terraform_required_providers
+          - --args=--disable-rule=terraform_deprecated_interpolation
+          - --args=--call-module-type=all
+
+      # Generate documentation
+      - id: tofu_docs
+        args:
+          # Pass terraform-docs config inline
+          - --args=--formatter=markdown
+          - --args=--sort-by=name
+          - --args=--output-file=README.md
+          - --args=--output-mode=inject
+          - --args=--show=all
+
+      # Security scanning with Checkov
+      - id: tofu_checkov
+        args:
+          # Pass Checkov config inline instead of file
+          - --args=--quiet
+          - --args=--compact
+          - --args=--framework=terraform
+          - --args=--check=CKV_AWS_*
+          - --args=--check=CKV_TF_*
+          - --args=--skip-path=.terraform/
+          - --args=--skip-path=.git/
+          - --args=--download-external-modules=true
+          - --args=--soft-fail
+
+      # Security scanning with Trivy
+      - id: tofu_trivy
+        args:
+          # Pass Trivy config inline - simplified syntax
+          - --args=--severity=HIGH,CRITICAL
+          - --args=--skip-dirs=.terraform,.venv,.git,node_modules
+          - --args=--format=table
+          - --args=--exit-code=0
+          - --args=--timeout=5m0s
