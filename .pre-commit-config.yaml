@@ -1,6 +1,6 @@
 ---
 # Configuration pre-commit pour OpenTofu/Terraform
-# Basée sur la configuration NewHorizon-IaC-AWS
+# Basée sure la configuration NewHorizon-IaC-AWS
 
 default_language_version:
   python: python3

@@ -109,8 +109,16 @@ RUN set -eux; \
     fi; \
     \
     # Install Python tools (minimal set)
+    # Install pre-commit with its essential dependencies first
+    pip3 install --no-cache-dir --break-system-packages \
+        cfgv \
+        identify \
+        nodeenv \
+        pyyaml \
+        virtualenv \
+        pre-commit==3.6.0; \
+    # Install other tools without dependencies
     pip3 install --no-cache-dir --no-deps --break-system-packages \
-        pre-commit==3.6.0 \
         checkov==3.2.0 \
         yamllint==1.35.0 \
         typos==1.16.0; \
@@ -183,8 +191,14 @@ RUN if [ ! -f /usr/local/bin/gitleaks ]; then \
     fi
 
 # Install Python and Node.js tools in final stage (simpler approach)
-RUN pip3 install --no-cache-dir --no-deps --break-system-packages \
+RUN pip3 install --no-cache-dir --break-system-packages \
+        cfgv \
+        identify \
+        nodeenv \
+        pyyaml \
+        virtualenv \
         pre-commit==3.6.0 \
+    && pip3 install --no-cache-dir --no-deps --break-system-packages \
         checkov==3.2.0 \
         yamllint==1.35.0 \
         typos==1.16.0 \

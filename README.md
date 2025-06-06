@@ -1,6 +1,7 @@
 # OpenTofu Pre-commit Tools
 
-Comprehensive Docker images with OpenTofu and infrastructure tools for CI/CD pipelines, pre-commit hooks, and development environments.
+Comprehensive Docker images with OpenTofu and infrastructure tools for
+CI/CD pipelines, pre-commit hooks, and development environments.
 
 ## 🚀 Quick Start
 
@@ -12,7 +13,8 @@ docker pull kamorion/opentofu-pre-commit:latest
 docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:latest
 
 # Basic usage with your infrastructure code
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest tofu version
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest tofu version
 
 # With AWS credentials for real infrastructure work
 docker run --rm \
@@ -32,6 +34,7 @@ docker run --rm \
 We provide three optimized variants:
 
 ### Ubuntu (Default)
+
 - **Tag**: `latest`, `ubuntu`
 - **Base**: Ubuntu 22.04
 - **Size**: ~800MB
@@ -45,6 +48,7 @@ docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:latest
 ```
 
 ### Alpine
+
 - **Tag**: `alpine`
 - **Base**: Alpine 3.19
 - **Size**: ~400MB
@@ -58,6 +62,7 @@ docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:alpine
 ```
 
 ### Slim
+
 - **Tag**: `slim`
 - **Base**: Debian Bookworm Slim
 - **Size**: ~600MB
@@ -73,6 +78,7 @@ docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:slim
 ## 🛠️ Included Tools
 
 ### Core Infrastructure Tools
+
 - **OpenTofu** v1.9.1 - Infrastructure as Code
 - **TFLint** v0.50.3 - Terraform/OpenTofu linter
 - **Trivy** v0.50.1 - Security scanner
@@ -80,6 +86,7 @@ docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:slim
 - **Shfmt** v3.7.0 - Shell script formatter
 
 ### Security & Quality Tools
+
 - **Pre-commit** v3.6.0 - Git hooks framework (with pre-cached hooks)
 - **Checkov** v3.2.0 - Infrastructure security scanner
 - **Gitleaks** v8.18.0 - Secret detection
@@ -88,6 +95,7 @@ docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:slim
 - **Markdownlint-cli2** v0.11.0 - Markdown linter
 
 ### System Tools
+
 - Git, Curl, JQ, Python3, Node.js, NPM
 
 ## 🔧 Usage Examples
@@ -96,7 +104,8 @@ docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:slim
 
 ```bash
 # Initialize OpenTofu
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest tofu init
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest tofu init
 
 # Plan infrastructure changes
 docker run --rm \
@@ -115,48 +124,60 @@ docker run --rm \
 
 ```bash
 # Scan infrastructure code with Checkov
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest checkov -d .
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest checkov -d .
 
 # Scan for secrets with Gitleaks
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest gitleaks detect --source .
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest gitleaks detect --source .
 
 # Security scan with Trivy
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest trivy fs .
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest trivy fs .
 ```
 
 ### Code Quality
 
 ```bash
 # Lint OpenTofu files
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest tflint
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest tflint
 
 # Format shell scripts
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest shfmt -w .
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest shfmt -w .
 
 # Generate documentation
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest terraform-docs .
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest terraform-docs .
 ```
 
 ### Pre-commit Integration
 
 ```bash
 # Use the built-in pre-commit helper
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper help
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest pre-commit-helper help
 
 # Install pre-commit hooks in your project
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper install
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest pre-commit-helper install
 
 # Run pre-commit on all files
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper run
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest pre-commit-helper run
 
 # Run pre-commit on staged files only
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper run-staged
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest pre-commit-helper run-staged
 
 # Update pre-commit hooks
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper update
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest pre-commit-helper update
 
 # Validate pre-commit configuration
-docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest pre-commit-helper validate
+docker run --rm -v $(pwd):/workspace \
+  kamorion/opentofu-pre-commit:latest pre-commit-helper validate
 ```
 
 ### Development Mode
@@ -252,25 +273,31 @@ repos:
     hooks:
       - id: tofu-fmt
         name: OpenTofu Format
-        entry: docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:alpine tofu fmt
+        entry: docker run --rm -v $(pwd):/workspace \
+          kamorion/opentofu-pre-commit:alpine tofu fmt
         language: system
         files: \.tf$
-        
+
       - id: tofu-validate
         name: OpenTofu Validate
-        entry: docker run --rm -v $(pwd):/workspace -v ~/.aws:/shared/aws:ro kamorion/opentofu-pre-commit:alpine sh -c "tofu init && tofu validate"
+        entry: docker run --rm -v $(pwd):/workspace \
+          -v ~/.aws:/shared/aws:ro \
+          kamorion/opentofu-pre-commit:alpine sh -c \
+          "tofu init && tofu validate"
         language: system
         files: \.tf$
-        
+
       - id: tflint
         name: TFLint
-        entry: docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:alpine tflint
+        entry: docker run --rm -v $(pwd):/workspace \
+          kamorion/opentofu-pre-commit:alpine tflint
         language: system
         files: \.tf$
-        
+
       - id: checkov
         name: Checkov Security Scan
-        entry: docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:alpine checkov -d .
+        entry: docker run --rm -v $(pwd):/workspace \
+          kamorion/opentofu-pre-commit:alpine checkov -d .
         language: system
         files: \.tf$
 ```
@@ -278,6 +305,7 @@ repos:
 ## 🏗️ Architecture
 
 ### Multi-stage Builds
+
 All images use multi-stage builds for optimal size and security:
 
 1. **Base Stage**: Install system dependencies
@@ -286,7 +314,9 @@ All images use multi-stage builds for optimal size and security:
 4. **Final Stage**: Copy only necessary files
 
 ### Provider Caching
+
 Images include pre-cached OpenTofu providers for faster initialization:
+
 - AWS Provider ~5.0
 - Random Provider ~3.1
 - Null Provider ~3.1
@@ -294,7 +324,9 @@ Images include pre-cached OpenTofu providers for faster initialization:
 - TLS Provider ~4.0
 
 ### Azure DevOps Compatibility
+
 Special user and permission setup for Azure DevOps agents:
+
 - User: `vsts_azpcontainer` (UID: 1001)
 - Group: `docker_azpcontainer` (GID: 1001)
 - Proper permissions for plugin cache and workspace
@@ -305,10 +337,12 @@ Special user and permission setup for Azure DevOps agents:
 
 ```bash
 # Set custom plugin cache directory
-docker run --rm -e TF_PLUGIN_CACHE_DIR=/custom/cache kamorion/opentofu-pre-commit:latest
+docker run --rm -e TF_PLUGIN_CACHE_DIR=/custom/cache \
+  kamorion/opentofu-pre-commit:latest
 
 # Disable OpenTofu checkpoint
-docker run --rm -e CHECKPOINT_DISABLE=1 kamorion/opentofu-pre-commit:latest
+docker run --rm -e CHECKPOINT_DISABLE=1 \
+  kamorion/opentofu-pre-commit:latest
 ```
 
 ### Volume Mounts
@@ -342,15 +376,18 @@ docker run --rm \
 ## 🛡️ Security
 
 ### Vulnerability Scanning
+
 All images are automatically scanned with Trivy for vulnerabilities.
 
 ### Minimal Attack Surface
+
 - No unnecessary packages
 - Non-root user support
 - Stripped binaries where possible
 - Regular base image updates
 
 ### Supply Chain Security
+
 - Pinned tool versions
 - Checksum verification
 - Multi-stage builds
@@ -389,7 +426,8 @@ docker run --rm opentofu-pre-commit:ubuntu test-plugin-cache
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the
+[LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
@@ -400,12 +438,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🏷️ Tags and Versions
 
 ### Latest Tags
+
 - `latest` - Ubuntu-based image (default)
 - `ubuntu` - Ubuntu 22.04 based
 - `alpine` - Alpine 3.19 based
 - `slim` - Debian Bookworm Slim based
 
 ### Version Tags
+
 - `v1.0.0`, `v1.0`, `v1` - Semantic versioning
 - `v1.0.0-alpine`, `v1.0.0-slim` - Variant-specific versions
 
@@ -413,4 +453,4 @@ Last updated: 2025-01-06 16:09:15 UTC
 
 ---
 
-**Made with ❤️ for the Infrastructure as Code community**
+## Made with ❤️ for the Infrastructure as Code community
