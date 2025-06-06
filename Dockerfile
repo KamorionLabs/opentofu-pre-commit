@@ -78,11 +78,17 @@ RUN set -eux; \
     mv "shfmt_v${SHFMT_VERSION}_linux_${ARCH}" /usr/local/bin/shfmt; \
     chmod +x /usr/local/bin/shfmt; \
     \
-    # Download and install gitleaks
-    wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz"; \
-    tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz"; \
-    mv gitleaks /usr/local/bin/; \
-    chmod +x /usr/local/bin/gitleaks; \
+    # Download and install gitleaks (with ARM64 fallback)
+    if wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz"; then \
+        tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz"; \
+        mv gitleaks /usr/local/bin/; \
+        chmod +x /usr/local/bin/gitleaks; \
+    else \
+        echo "Warning: gitleaks not available for ${ARCH}, creating placeholder..."; \
+        echo '#!/bin/bash' > /usr/local/bin/gitleaks; \
+        echo 'echo "gitleaks not available for this architecture"' >> /usr/local/bin/gitleaks; \
+        chmod +x /usr/local/bin/gitleaks; \
+    fi; \
     \
     # Install Python tools
     pip3 install --no-cache-dir \

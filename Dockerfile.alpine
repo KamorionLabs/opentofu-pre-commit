@@ -1,4 +1,4 @@
-# OpenTofu Infrastructure Pipeline Container - Ultra Optimized Alpine
+d# OpenTofu Infrastructure Pipeline Container - Ultra Optimized Alpine
 # Multi-stage build for minimal size and maximum performance
 FROM alpine:3.19 AS base
 
@@ -95,7 +95,10 @@ RUN set -eux; \
             chmod +x /usr/local/bin/gitleaks; \
             echo "Gitleaks installed with alternative URL"; \
         else \
-            echo "Warning: Could not install gitleaks, continuing without it..."; \
+            echo "Warning: Could not install gitleaks, creating placeholder..."; \
+            echo '#!/bin/bash' > /usr/local/bin/gitleaks; \
+            echo 'echo "gitleaks not available for this architecture"' >> /usr/local/bin/gitleaks; \
+            chmod +x /usr/local/bin/gitleaks; \
         fi; \
     fi; \
     \

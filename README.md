@@ -6,13 +6,25 @@ Comprehensive Docker images with OpenTofu and infrastructure tools for CI/CD pip
 
 ```bash
 # Pull from Docker Hub (recommended)
-docker pull your-dockerhub-username/opentofu-pre-commit:latest
+docker pull kamorion/opentofu-pre-commit:latest
 
 # Or pull from GitHub Container Registry
-docker pull ghcr.io/your-org/opentofu-pre-commit:latest
+docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:latest
 
-# Run with your infrastructure code
-docker run --rm -v $(pwd):/workspace your-dockerhub-username/opentofu-pre-commit:latest tofu version
+# Basic usage with your infrastructure code
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest tofu version
+
+# With AWS credentials for real infrastructure work
+docker run --rm \
+  -v $(pwd):/workspace \
+  -v ~/.aws:/shared/aws:ro \
+  kamorion/opentofu-pre-commit:latest tofu plan
+
+# Run pre-commit hooks on your current directory
+docker run --rm \
+  -v $(pwd):/workspace \
+  -v ~/.aws:/shared/aws:ro \
+  kamorion/opentofu-pre-commit:latest pre-commit run --all-files
 ```
 
 ## 📦 Available Images
@@ -27,9 +39,9 @@ We provide three optimized variants:
 
 ```bash
 # Docker Hub
-docker pull your-dockerhub-username/opentofu-pre-commit:latest
+docker pull kamorion/opentofu-pre-commit:latest
 # GitHub Container Registry
-docker pull ghcr.io/your-org/opentofu-pre-commit:latest
+docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:latest
 ```
 
 ### Alpine
@@ -40,9 +52,9 @@ docker pull ghcr.io/your-org/opentofu-pre-commit:latest
 
 ```bash
 # Docker Hub
-docker pull your-dockerhub-username/opentofu-pre-commit:alpine
+docker pull kamorion/opentofu-pre-commit:alpine
 # GitHub Container Registry
-docker pull ghcr.io/your-org/opentofu-pre-commit:alpine
+docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:alpine
 ```
 
 ### Slim
@@ -53,9 +65,9 @@ docker pull ghcr.io/your-org/opentofu-pre-commit:alpine
 
 ```bash
 # Docker Hub
-docker pull your-dockerhub-username/opentofu-pre-commit:slim
+docker pull kamorion/opentofu-pre-commit:slim
 # GitHub Container Registry
-docker pull ghcr.io/your-org/opentofu-pre-commit:slim
+docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:slim
 ```
 
 ## 🛠️ Included Tools
@@ -83,49 +95,58 @@ docker pull ghcr.io/your-org/opentofu-pre-commit:slim
 
 ```bash
 # Initialize OpenTofu
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest tofu init
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest tofu init
 
 # Plan infrastructure changes
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest tofu plan
+docker run --rm \
+  -v $(pwd):/workspace \
+  -v ~/.aws:/shared/aws:ro \
+  kamorion/opentofu-pre-commit:latest tofu plan
 
 # Apply changes
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest tofu apply
+docker run --rm \
+  -v $(pwd):/workspace \
+  -v ~/.aws:/shared/aws:ro \
+  kamorion/opentofu-pre-commit:latest tofu apply
 ```
 
 ### Security Scanning
 
 ```bash
 # Scan infrastructure code with Checkov
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest checkov -d .
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest checkov -d .
 
 # Scan for secrets with Gitleaks
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest gitleaks detect --source .
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest gitleaks detect --source .
 
 # Security scan with Trivy
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest trivy fs .
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest trivy fs .
 ```
 
 ### Code Quality
 
 ```bash
 # Lint OpenTofu files
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest tflint
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest tflint
 
 # Format shell scripts
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest shfmt -w .
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest shfmt -w .
 
 # Generate documentation
-docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest terraform-docs .
+docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:latest terraform-docs .
 ```
 
 ### Development Mode
 
 ```bash
 # Interactive development environment
-docker run -it --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:latest dev
+docker run -it --rm \
+  -v $(pwd):/workspace \
+  -v ~/.aws:/shared/aws:ro \
+  kamorion/opentofu-pre-commit:latest dev
 
 # Verify all tools
-docker run --rm ghcr.io/your-org/opentofu-pre-commit:latest verify
+docker run --rm kamorion/opentofu-pre-commit:latest verify
 ```
 
 ## 🔄 CI/CD Integration
@@ -140,7 +161,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/your-org/opentofu-pre-commit:alpine
+      image: kamorion/opentofu-pre-commit:alpine
     steps:
       - uses: actions/checkout@v4
       - name: Validate OpenTofu
@@ -160,7 +181,7 @@ jobs:
 pool:
   vmImage: 'ubuntu-latest'
 
-container: ghcr.io/your-org/opentofu-pre-commit:slim
+container: kamorion/opentofu-pre-commit:slim
 
 steps:
 - script: |
@@ -178,7 +199,7 @@ steps:
 ### GitLab CI
 
 ```yaml
-image: ghcr.io/your-org/opentofu-pre-commit:alpine
+image: kamorion/opentofu-pre-commit:alpine
 
 stages:
   - validate
@@ -208,25 +229,25 @@ repos:
     hooks:
       - id: tofu-fmt
         name: OpenTofu Format
-        entry: docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:alpine tofu fmt
+        entry: docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:alpine tofu fmt
         language: system
         files: \.tf$
         
       - id: tofu-validate
         name: OpenTofu Validate
-        entry: docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:alpine sh -c "tofu init && tofu validate"
+        entry: docker run --rm -v $(pwd):/workspace -v ~/.aws:/shared/aws:ro kamorion/opentofu-pre-commit:alpine sh -c "tofu init && tofu validate"
         language: system
         files: \.tf$
         
       - id: tflint
         name: TFLint
-        entry: docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:alpine tflint
+        entry: docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:alpine tflint
         language: system
         files: \.tf$
         
       - id: checkov
         name: Checkov Security Scan
-        entry: docker run --rm -v $(pwd):/workspace ghcr.io/your-org/opentofu-pre-commit:alpine checkov -d .
+        entry: docker run --rm -v $(pwd):/workspace kamorion/opentofu-pre-commit:alpine checkov -d .
         language: system
         files: \.tf$
 ```
@@ -261,26 +282,26 @@ Special user and permission setup for Azure DevOps agents:
 
 ```bash
 # Set custom plugin cache directory
-docker run --rm -e TF_PLUGIN_CACHE_DIR=/custom/cache ghcr.io/your-org/opentofu-pre-commit:latest
+docker run --rm -e TF_PLUGIN_CACHE_DIR=/custom/cache kamorion/opentofu-pre-commit:latest
 
 # Disable OpenTofu checkpoint
-docker run --rm -e CHECKPOINT_DISABLE=1 ghcr.io/your-org/opentofu-pre-commit:latest
+docker run --rm -e CHECKPOINT_DISABLE=1 kamorion/opentofu-pre-commit:latest
 ```
 
 ### Volume Mounts
 
 ```bash
-# Mount AWS credentials
+# Mount AWS credentials (recommended way)
 docker run --rm \
-  -v ~/.aws:/root/.aws:ro \
+  -v ~/.aws:/shared/aws:ro \
   -v $(pwd):/workspace \
-  ghcr.io/your-org/opentofu-pre-commit:latest
+  kamorion/opentofu-pre-commit:latest
 
 # Mount SSH keys for Git
 docker run --rm \
   -v ~/.ssh:/root/.ssh:ro \
   -v $(pwd):/workspace \
-  ghcr.io/your-org/opentofu-pre-commit:latest
+  kamorion/opentofu-pre-commit:latest
 ```
 
 ## 📊 Image Comparison
@@ -349,9 +370,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- 📖 [Documentation](https://github.com/your-org/opentofu-pre-commit/wiki)
-- 🐛 [Issue Tracker](https://github.com/your-org/opentofu-pre-commit/issues)
-- 💬 [Discussions](https://github.com/your-org/opentofu-pre-commit/discussions)
+- 📖 [Documentation](https://github.com/kamorionlabs/opentofu-pre-commit/wiki)
+- 🐛 [Issue Tracker](https://github.com/kamorionlabs/opentofu-pre-commit/issues)
+- 💬 [Discussions](https://github.com/kamorionlabs/opentofu-pre-commit/discussions)
 
 ## 🏷️ Tags and Versions
 
