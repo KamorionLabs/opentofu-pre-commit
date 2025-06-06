@@ -182,6 +182,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apk add --no-cache \
     bash \
     curl \
+    unzip \
     git \
     jq \
     python3 \
