@@ -125,11 +125,15 @@ RUN set -eux; \
     rm -rf /tmp/downloads
 
 # Install Python tools (glibc-based, pip installs work natively)
-RUN pip3 install --no-cache-dir --break-system-packages \
+RUN pip3 install --no-cache-dir \
         pre-commit==4.5.1 \
         checkov==3.2.508 \
         yamllint==1.38.0 \
         typos==1.16.0 \
+    && ln -sf "$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))')/pre-commit" /usr/local/bin/pre-commit \
+    && ln -sf "$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))')/checkov" /usr/local/bin/checkov \
+    && ln -sf "$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))')/yamllint" /usr/local/bin/yamllint \
+    && pre-commit --version \
     && npm install -g --no-optional --no-audit --no-fund \
         markdownlint-cli2@0.21.0 \
     && rm -rf /root/.cache /root/.npm \
