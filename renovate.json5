@@ -5,6 +5,7 @@
     "docker:enableMajor",
     ":semanticCommits"
   ],
+  "dependencyDashboardApproval": false,
   "schedule": ["before 6am on Monday"],
   "timezone": "Europe/Paris",
   "labels": ["dependencies"],
