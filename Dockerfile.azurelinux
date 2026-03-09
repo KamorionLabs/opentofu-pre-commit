@@ -31,6 +31,7 @@ RUN tdnf install -y \
     jq \
     ca-certificates \
     shadow-utils \
+    python3-pip \
     && tdnf clean all
 
 # Install Node.js and npm
@@ -124,24 +125,18 @@ RUN set -eux; \
     cd /; \
     rm -rf /tmp/downloads
 
-# Install Python tools using system python3 (not Azure CLI's venv pip)
-RUN python3 -m pip install --no-cache-dir \
+# Install Python tools (python3-pip installed via tdnf above)
+RUN pip3 install --no-cache-dir \
         pre-commit==4.5.1 \
         checkov==3.2.508 \
         yamllint==1.38.0 \
         typos==1.16.0 \
-    && python3 -m pre_commit --version \
-    && SCRIPTS=$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))') \
-    && for bin in pre-commit checkov yamllint; do \
-        if [ -f "${SCRIPTS}/${bin}" ]; then \
-            ln -sf "${SCRIPTS}/${bin}" "/usr/local/bin/${bin}"; \
-        fi; \
-    done \
+    && pre-commit --version \
     && npm install -g --no-optional --no-audit --no-fund \
         markdownlint-cli2@0.21.0 \
     && rm -rf /root/.cache /root/.npm \
     && npm cache clean --force 2>/dev/null || true \
-    && python3 -m pip cache purge 2>/dev/null || true
+    && pip3 cache purge 2>/dev/null || true
 
 # Copy helper scripts and configuration
 COPY docker/verify-tools.sh /usr/local/bin/verify-tools.sh
@@ -160,7 +155,7 @@ RUN cd /workspace \
     && git config user.name "Docker Build" \
     && git add .pre-commit-config.yaml \
     && git commit -m "Initial commit for pre-commit cache" \
-    && python3 -m pre_commit install-hooks \
+    && pre-commit install-hooks \
     && rm -rf .git \
     && echo "Pre-commit hooks cached successfully"
 
