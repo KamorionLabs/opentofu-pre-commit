@@ -204,7 +204,7 @@ jobs:
           else
             REF="${IMG}:${TAG}"
           fi
-          echo "image-ref=${REF}" >> $GITHUB_OUTPUT
+          echo "image-ref=${REF,,}" >> $GITHUB_OUTPUT
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
