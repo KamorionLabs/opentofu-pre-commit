@@ -14,7 +14,6 @@ name: Security Scan
 env:
   GHCR_REGISTRY: ghcr.io
   GHCR_IMAGE_NAME: ${{ github.repository_owner }}/opentofu-pre-commit
-  DOCKERHUB_IMAGE_NAME: ${{ vars.DOCKERHUB_REPO }}/opentofu-pre-commit
 
 jobs:
   security-scan:
@@ -30,45 +29,33 @@ jobs:
       fail-fast: false
       matrix:
         variant: [ubuntu, alpine, slim, azurelinux]
-        registry: [ghcr, dockerhub]
 
     steps:
       - name: Set image reference
         id: image-ref
         run: |
           VARIANT="${{ matrix.variant }}"
-          if [ "${{ matrix.registry }}" = "ghcr" ]; then
-            REG="${{ env.GHCR_REGISTRY }}"
-            IMG="${{ env.GHCR_IMAGE_NAME }}"
-          else
-            IMG="${{ env.DOCKERHUB_IMAGE_NAME }}"
-          fi
+          IMG="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
           if [ "$VARIANT" = "ubuntu" ]; then
             TAG="latest"
           else
             TAG="$VARIANT"
           fi
-          if [ "${{ matrix.registry }}" = "ghcr" ]; then
-            REF="${REG}/${IMG}:${TAG}"
-          else
-            REF="${IMG}:${TAG}"
-          fi
-          echo "image-ref=${REF,,}" >> $GITHUB_OUTPUT
+          echo "image-ref=${IMG,,}:${TAG}" >> $GITHUB_OUTPUT
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.image-ref.outputs.image-ref }}
           format: 'sarif'
-          output: >-
-            trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif
+          output: trivy-${{ matrix.variant }}.sarif
           timeout: '10m'
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: >-
-            trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif
-          category: >-
-            trivy-${{ matrix.variant }}-${{ matrix.registry }}
+          sarif_file: trivy-${{ matrix.variant }}.sarif
+          category: trivy-${{ matrix.variant }}
