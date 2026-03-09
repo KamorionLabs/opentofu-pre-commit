@@ -1,0 +1,74 @@
+---
+name: Security Scan
+
+"on":
+  workflow_dispatch: {}
+  workflow_run:
+    workflows: ["Build and Push Docker Images"]
+    types: [completed]
+    branches: [main]
+  schedule:
+    # Scan weekly on Wednesdays at 3 AM UTC
+    - cron: '0 3 * * 3'
+
+env:
+  GHCR_REGISTRY: ghcr.io
+  GHCR_IMAGE_NAME: ${{ github.repository_owner }}/opentofu-pre-commit
+  DOCKERHUB_IMAGE_NAME: ${{ vars.DOCKERHUB_REPO }}/opentofu-pre-commit
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [ubuntu, alpine, slim, azurelinux]
+        registry: [ghcr, dockerhub]
+
+    steps:
+      - name: Set image reference
+        id: image-ref
+        run: |
+          VARIANT="${{ matrix.variant }}"
+          if [ "${{ matrix.registry }}" = "ghcr" ]; then
+            REG="${{ env.GHCR_REGISTRY }}"
+            IMG="${{ env.GHCR_IMAGE_NAME }}"
+          else
+            IMG="${{ env.DOCKERHUB_IMAGE_NAME }}"
+          fi
+          if [ "$VARIANT" = "ubuntu" ]; then
+            TAG="latest"
+          else
+            TAG="$VARIANT"
+          fi
+          if [ "${{ matrix.registry }}" = "ghcr" ]; then
+            REF="${REG}/${IMG}:${TAG}"
+          else
+            REF="${IMG}:${TAG}"
+          fi
+          echo "image-ref=${REF,,}" >> $GITHUB_OUTPUT
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.image-ref.outputs.image-ref }}
+          format: 'sarif'
+          output: >-
+            trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif
+          timeout: '10m'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: >-
+            trivy-results-${{ matrix.variant }}-${{ matrix.registry }}.sarif
+          category: >-
+            trivy-${{ matrix.variant }}-${{ matrix.registry }}
