@@ -36,20 +36,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Install AWS CLI v2
-RUN set -eux; \
-    ARCH=$(uname -m); \
-    case $ARCH in \
-        x86_64) AWS_ARCH="x86_64" ;; \
-        aarch64) AWS_ARCH="aarch64" ;; \
-        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
-    esac; \
-    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
-    unzip -q awscliv2.zip; \
-    ./aws/install; \
-    rm -rf aws awscliv2.zip /var/lib/apt/lists/* \
-    && apt-get clean
-
 # Install tools stage - optimized for size
 FROM base AS tools
 
@@ -168,13 +154,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Copy AWS CLI from base stage
-COPY --from=base /usr/local/aws-cli/ /usr/local/aws-cli/
-COPY --from=base /usr/local/bin/aws /usr/local/bin/aws
-
-# Ensure AWS CLI is in PATH and working
-RUN ln -sf /usr/local/bin/aws /usr/bin/aws \
-    && aws --version
+# Install AWS CLI v2 directly (PyInstaller bundle needs all its libs)
+RUN set -eux; \
+    ARCH=$(uname -m); \
+    case $ARCH in \
+        x86_64) AWS_ARCH="x86_64" ;; \
+        aarch64) AWS_ARCH="aarch64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
+    unzip -q awscliv2.zip; \
+    ./aws/install; \
+    rm -rf aws awscliv2.zip; \
+    aws --version
 
 # Copy only essential binaries from tools stage
 COPY --from=tools /usr/local/bin/tofu /usr/local/bin/
