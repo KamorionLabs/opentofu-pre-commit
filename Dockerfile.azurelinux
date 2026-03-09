@@ -1,10 +1,10 @@
-# OpenTofu Infrastructure Pipeline Container - Standard Ubuntu
-# Comprehensive toolset for infrastructure automation and CI/CD pipelines
-FROM ubuntu:24.04
+# OpenTofu Infrastructure Pipeline Container - Azure Linux
+# Based on official Microsoft Azure CLI image (Azure Linux 3.0)
+# Provides native Azure CLI support with glibc compatibility
+FROM mcr.microsoft.com/azure-cli:latest
 
 # Avoid interactive prompts and set timezone
-ENV DEBIAN_FRONTEND=noninteractive \
-    TZ=Europe/Paris \
+ENV TZ=Europe/Paris \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -18,31 +18,42 @@ ARG TRIVY_VERSION=0.69.3
 ARG SHFMT_VERSION=3.12.0
 ARG GITLEAKS_VERSION=8.30.0
 ARG SHELLCHECK_VERSION=0.11.0
+ARG NODE_MAJOR=20
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash \
+# Install system dependencies via tdnf (Azure Linux package manager)
+RUN tdnf install -y \
+    git \
     curl \
     wget \
     unzip \
-    git \
+    tar \
+    gzip \
     jq \
-    python3 \
-    python3-pip \
     ca-certificates \
-    gnupg \
-    nodejs \
-    npm \
-    shellcheck \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    shadow-utils \
+    && tdnf clean all
+
+# Install Node.js and npm
+RUN curl -fsSL https://rpm.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
+    && tdnf install -y nodejs \
+    && tdnf clean all \
+    || ( \
+        # Fallback: install Node.js from binary if NodeSource fails
+        ARCH=$(uname -m); \
+        case $ARCH in \
+            x86_64) NODE_ARCH="x64" ;; \
+            aarch64) NODE_ARCH="arm64" ;; \
+        esac; \
+        curl -fsSL "https://nodejs.org/dist/v${NODE_MAJOR}.0.0/node-v${NODE_MAJOR}.0.0-linux-${NODE_ARCH}.tar.xz" \
+            | tar -xJ --strip-components=1 -C /usr/local/ \
+    )
 
 # Install AWS CLI v2
 RUN set -eux; \
-    ARCH=$(dpkg --print-architecture); \
+    ARCH=$(uname -m); \
     case $ARCH in \
-        amd64) AWS_ARCH="x86_64" ;; \
-        arm64) AWS_ARCH="aarch64" ;; \
+        x86_64) AWS_ARCH="x86_64" ;; \
+        aarch64) AWS_ARCH="aarch64" ;; \
         *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
     esac; \
     curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"; \
@@ -50,9 +61,12 @@ RUN set -eux; \
     ./aws/install; \
     rm -rf aws awscliv2.zip
 
-# Install Azure CLI
+# Install shellcheck from binary
 RUN set -eux; \
-    curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash
+    ARCH=$(uname -m); \
+    curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.${ARCH}.tar.xz" \
+        | tar -xJ --strip-components=1 -C /usr/local/bin/ "shellcheck-v${SHELLCHECK_VERSION}/shellcheck"; \
+    chmod +x /usr/local/bin/shellcheck
 
 # Install binary tools
 RUN set -eux; \
@@ -60,72 +74,67 @@ RUN set -eux; \
     cd /tmp/downloads; \
     \
     # Detect architecture
-    ARCH=$(dpkg --print-architecture); \
+    ARCH=$(uname -m); \
     case $ARCH in \
-        amd64) TRIVY_ARCH="64bit" ;; \
-        arm64) TRIVY_ARCH="ARM64" ;; \
+        x86_64) ARCH="amd64"; TRIVY_ARCH="64bit" ;; \
+        aarch64) ARCH="arm64"; TRIVY_ARCH="ARM64" ;; \
         *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
     esac; \
     \
     # Download and install OpenTofu
-    wget -q "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_${ARCH}.zip"; \
-    unzip -q "tofu_${TOFU_VERSION}_linux_${ARCH}.zip"; \
+    curl -fsSL "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_${ARCH}.zip" -o "tofu.zip"; \
+    unzip -q "tofu.zip"; \
     mv tofu /usr/local/bin/; \
     chmod +x /usr/local/bin/tofu; \
     \
     # Download and install terraform-docs
-    wget -q "https://github.com/terraform-docs/terraform-docs/releases/download/v${TERRAFORM_DOCS_VERSION}/terraform-docs-v${TERRAFORM_DOCS_VERSION}-linux-${ARCH}.tar.gz"; \
-    tar -xzf "terraform-docs-v${TERRAFORM_DOCS_VERSION}-linux-${ARCH}.tar.gz"; \
+    curl -fsSL "https://github.com/terraform-docs/terraform-docs/releases/download/v${TERRAFORM_DOCS_VERSION}/terraform-docs-v${TERRAFORM_DOCS_VERSION}-linux-${ARCH}.tar.gz" -o "terraform-docs.tar.gz"; \
+    tar -xzf "terraform-docs.tar.gz"; \
     mv terraform-docs /usr/local/bin/; \
     chmod +x /usr/local/bin/terraform-docs; \
     \
     # Download and install TFLint
-    wget -q "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_${ARCH}.zip"; \
-    unzip -q "tflint_linux_${ARCH}.zip"; \
+    curl -fsSL "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_${ARCH}.zip" -o "tflint.zip"; \
+    unzip -q "tflint.zip"; \
     mv tflint /usr/local/bin/; \
     chmod +x /usr/local/bin/tflint; \
     \
     # Download and install Trivy (architecture-aware URL)
-    wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${TRIVY_ARCH}.tar.gz"; \
-    tar -xzf "trivy_${TRIVY_VERSION}_Linux-${TRIVY_ARCH}.tar.gz"; \
+    curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${TRIVY_ARCH}.tar.gz" -o "trivy.tar.gz"; \
+    tar -xzf "trivy.tar.gz"; \
     mv trivy /usr/local/bin/; \
     chmod +x /usr/local/bin/trivy; \
     \
     # Download and install shfmt
-    wget -q "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_${ARCH}"; \
-    mv "shfmt_v${SHFMT_VERSION}_linux_${ARCH}" /usr/local/bin/shfmt; \
+    curl -fsSL "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_${ARCH}" -o "/usr/local/bin/shfmt"; \
     chmod +x /usr/local/bin/shfmt; \
     \
-    # Download and install gitleaks (with ARM64 fallback)
-    if wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz"; then \
-        tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz"; \
+    # Download and install gitleaks
+    if curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz" -o "gitleaks.tar.gz"; then \
+        tar -xzf "gitleaks.tar.gz"; \
         mv gitleaks /usr/local/bin/; \
         chmod +x /usr/local/bin/gitleaks; \
     else \
-        echo "Warning: gitleaks not available for ${ARCH}, creating placeholder..."; \
         echo '#!/bin/bash' > /usr/local/bin/gitleaks; \
         echo 'echo "gitleaks not available for this architecture"' >> /usr/local/bin/gitleaks; \
         chmod +x /usr/local/bin/gitleaks; \
     fi; \
     \
-    # Install Python tools
-    pip3 install --no-cache-dir --break-system-packages \
+    # Cleanup
+    cd /; \
+    rm -rf /tmp/downloads
+
+# Install Python tools (glibc-based, pip installs work natively)
+RUN pip3 install --no-cache-dir --break-system-packages \
         pre-commit==4.5.1 \
         checkov==3.2.508 \
         yamllint==1.38.0 \
-        typos==1.16.0; \
-    \
-    # Install Node.js tools
-    npm install -g --no-optional --no-audit --no-fund \
-        markdownlint-cli2@0.21.0; \
-    \
-    # Cleanup
-    cd /; \
-    rm -rf /tmp/downloads; \
-    rm -rf /root/.cache; \
-    rm -rf /root/.npm; \
-    npm cache clean --force 2>/dev/null || true; \
-    python3 -m pip cache purge 2>/dev/null || true
+        typos==1.16.0 \
+    && npm install -g --no-optional --no-audit --no-fund \
+        markdownlint-cli2@0.21.0 \
+    && rm -rf /root/.cache /root/.npm \
+    && npm cache clean --force 2>/dev/null || true \
+    && python3 -m pip cache purge 2>/dev/null || true
 
 # Copy helper scripts and configuration
 COPY docker/verify-tools.sh /usr/local/bin/verify-tools.sh
@@ -162,15 +171,12 @@ RUN groupadd -g 1001 docker_azpcontainer \
     && ln -sf /usr/local/bin/test-plugin-cache.sh /usr/local/bin/test-plugin-cache \
     && ln -sf /usr/local/bin/pre-commit-helper.sh /usr/local/bin/pre-commit-helper
 
-# Set working directory
 WORKDIR /workspace
 
-# Labels for metadata
 LABEL maintainer="DevOps Team" \
-      description="Standard Ubuntu-based OpenTofu infrastructure tools for Azure DevOps" \
-      version="2.0.0" \
-      base-image="ubuntu:24.04" \
+      description="Azure Linux-based OpenTofu infrastructure tools with native Azure CLI" \
+      version="1.0.0" \
+      base-image="mcr.microsoft.com/azure-cli (Azure Linux 3.0)" \
       tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit,aws-cli,azure-cli,shellcheck"
 
-# Default command
 CMD ["/bin/bash"]

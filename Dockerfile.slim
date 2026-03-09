@@ -11,13 +11,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/bin:$PATH"
 
 # Tool versions
-ARG TOFU_VERSION=1.9.1
-ARG TERRAFORM_DOCS_VERSION=0.16.0
-ARG TFLINT_VERSION=0.50.3
-ARG TRIVY_VERSION=0.50.1
-ARG SHFMT_VERSION=3.7.0
-ARG GITLEAKS_VERSION=8.18.0
-ARG SHELLCHECK_VERSION=0.9.0
+ARG TOFU_VERSION=1.11.5
+ARG TERRAFORM_DOCS_VERSION=0.21.0
+ARG TFLINT_VERSION=0.61.0
+ARG TRIVY_VERSION=0.69.3
+ARG SHFMT_VERSION=3.12.0
+ARG GITLEAKS_VERSION=8.30.0
 
 # Install minimal system dependencies in one layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -63,15 +62,14 @@ FROM base AS tools
 
 # Install binary tools in a single optimized layer
 RUN set -eux; \
-    # Create temp directory
     mkdir -p /tmp/downloads; \
     cd /tmp/downloads; \
     \
-    # Detect architecture (improved detection)
+    # Detect architecture
     ARCH=$(uname -m); \
     case $ARCH in \
-        x86_64) ARCH="amd64" ;; \
-        aarch64) ARCH="arm64" ;; \
+        x86_64) ARCH="amd64"; TRIVY_ARCH="64bit" ;; \
+        aarch64) ARCH="arm64"; TRIVY_ARCH="ARM64" ;; \
         *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
     esac; \
     \
@@ -96,8 +94,8 @@ RUN set -eux; \
     chmod +x /usr/local/bin/tflint; \
     strip /usr/local/bin/tflint 2>/dev/null || true; \
     \
-    # Download and install Trivy
-    curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o "trivy.tar.gz"; \
+    # Download and install Trivy (architecture-aware URL)
+    curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${TRIVY_ARCH}.tar.gz" -o "trivy.tar.gz"; \
     tar -xzf "trivy.tar.gz"; \
     mv trivy /usr/local/bin/; \
     chmod +x /usr/local/bin/trivy; \
@@ -109,49 +107,27 @@ RUN set -eux; \
     strip /usr/local/bin/shfmt 2>/dev/null || true; \
     \
     # Download and install gitleaks (with error handling)
-    echo "Downloading gitleaks v${GITLEAKS_VERSION} for ${ARCH}..."; \
     if curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${ARCH}.tar.gz" -o "gitleaks.tar.gz"; then \
         tar -xzf "gitleaks.tar.gz"; \
         mv gitleaks /usr/local/bin/; \
         chmod +x /usr/local/bin/gitleaks; \
         strip /usr/local/bin/gitleaks 2>/dev/null || true; \
-        echo "Gitleaks installed successfully"; \
     else \
-        echo "Failed to download gitleaks, trying alternative URL..."; \
-        if curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x86_64.tar.gz" -o "gitleaks.tar.gz"; then \
-            tar -xzf "gitleaks.tar.gz"; \
-            mv gitleaks /usr/local/bin/; \
-            chmod +x /usr/local/bin/gitleaks; \
-            strip /usr/local/bin/gitleaks 2>/dev/null || true; \
-            echo "Gitleaks installed with alternative URL"; \
-        else \
-            echo "Warning: Could not install gitleaks, creating placeholder..."; \
-            echo '#!/bin/bash' > /usr/local/bin/gitleaks; \
-            echo 'echo "gitleaks not available for this architecture"' >> /usr/local/bin/gitleaks; \
-            chmod +x /usr/local/bin/gitleaks; \
-        fi; \
+        echo '#!/bin/bash' > /usr/local/bin/gitleaks; \
+        echo 'echo "gitleaks not available for this architecture"' >> /usr/local/bin/gitleaks; \
+        chmod +x /usr/local/bin/gitleaks; \
     fi; \
     \
-    # Install Python tools (minimal set)
-    # Install pre-commit with its essential dependencies first
+    # Install Python tools
     pip3 install --no-cache-dir --break-system-packages \
-        cfgv \
-        identify \
-        nodeenv \
-        pyyaml \
-        virtualenv \
-        pre-commit==3.6.0; \
-    # Install checkov with its dependencies (especially argcomplete)
-    pip3 install --no-cache-dir --break-system-packages \
-        checkov==3.2.0; \
-    # Install other tools without dependencies
-    pip3 install --no-cache-dir --no-deps --break-system-packages \
-        yamllint==1.35.0 \
+        pre-commit==4.5.1 \
+        checkov==3.2.508 \
+        yamllint==1.38.0 \
         typos==1.16.0; \
     \
-    # Install Node.js tools (minimal set)
+    # Install Node.js tools
     npm install -g --no-optional --no-audit --no-fund \
-        markdownlint-cli2@0.11.0; \
+        markdownlint-cli2@0.21.0; \
     \
     # Cleanup
     cd /; \
@@ -164,24 +140,19 @@ RUN set -eux; \
 # Provider cache stage - optimized
 FROM tools AS providers
 
-# Copy provider configuration and optimized preload script
 COPY docker/terraformrc /etc/skel/.terraformrc
 COPY docker/preload-providers-optimized.sh /usr/local/bin/preload-providers.sh
 
-# Setup provider cache with only essential providers (optimized for size)
 RUN chmod +x /usr/local/bin/preload-providers.sh \
     && cp /etc/skel/.terraformrc /root/.terraformrc \
     && chmod 644 /etc/skel/.terraformrc /root/.terraformrc \
     && mkdir -p /opt/tofu/plugin-cache \
     && /usr/local/bin/preload-providers.sh \
-    && rm -rf /tmp/* \
-    && rm -rf /var/tmp/* \
-    && rm -rf /root/.cache
+    && rm -rf /tmp/* /var/tmp/* /root/.cache
 
 # Final ultra-slim stage
 FROM debian:bookworm-slim AS final
 
-# Environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Europe/Paris \
     PYTHONUNBUFFERED=1 \
@@ -222,32 +193,17 @@ COPY --from=tools /usr/local/bin/terraform-docs /usr/local/bin/
 COPY --from=tools /usr/local/bin/tflint /usr/local/bin/
 COPY --from=tools /usr/local/bin/trivy /usr/local/bin/
 COPY --from=tools /usr/local/bin/shfmt /usr/local/bin/
+COPY --from=tools /usr/local/bin/gitleaks /usr/local/bin/
 
-# Copy gitleaks if it exists, otherwise create placeholder
-COPY --from=tools /usr/local/bin/gitleaks /usr/local/bin/gitleaks
-RUN if [ ! -f /usr/local/bin/gitleaks ]; then \
-        echo '#!/bin/bash' > /usr/local/bin/gitleaks \
-        && echo 'echo "gitleaks not available in this image"' >> /usr/local/bin/gitleaks \
-        && chmod +x /usr/local/bin/gitleaks; \
-    fi
-
-# Install Python and Node.js tools in final stage (simpler approach)
+# Install Python and Node.js tools in final stage
 RUN pip3 install --no-cache-dir --break-system-packages \
-        cfgv \
-        identify \
-        nodeenv \
-        pyyaml \
-        virtualenv \
-        pre-commit==3.6.0 \
-    && pip3 install --no-cache-dir --break-system-packages \
-        checkov==3.2.0 \
-    && pip3 install --no-cache-dir --no-deps --break-system-packages \
-        yamllint==1.35.0 \
+        pre-commit==4.5.1 \
+        checkov==3.2.508 \
+        yamllint==1.38.0 \
         typos==1.16.0 \
     && npm install -g --no-optional --no-audit --no-fund \
-        markdownlint-cli2@0.11.0 \
-    && rm -rf /root/.cache \
-    && rm -rf /root/.npm \
+        markdownlint-cli2@0.21.0 \
+    && rm -rf /root/.cache /root/.npm \
     && npm cache clean --force 2>/dev/null || true \
     && python3 -m pip cache purge 2>/dev/null || true
 
@@ -277,7 +233,7 @@ RUN cd /workspace \
     && rm -rf .git \
     && echo "Pre-commit hooks cached successfully"
 
-# Create Azure DevOps user and setup permissions in a single layer
+# Create Azure DevOps user and setup permissions
 RUN groupadd -g 1001 docker_azpcontainer \
     && useradd -m -u 1001 -g 1001 vsts_azpcontainer \
     && chmod +x /usr/local/bin/*.sh \
@@ -292,20 +248,15 @@ RUN groupadd -g 1001 docker_azpcontainer \
     && ln -sf /usr/local/bin/azure-devops-entrypoint.sh /usr/local/bin/azure-devops-entrypoint \
     && ln -sf /usr/local/bin/test-plugin-cache.sh /usr/local/bin/test-plugin-cache \
     && ln -sf /usr/local/bin/pre-commit-helper.sh /usr/local/bin/pre-commit-helper \
-    && rm -rf /tmp/* \
-    && rm -rf /var/tmp/* \
-    && rm -rf /root/.cache
+    && rm -rf /tmp/* /var/tmp/* /root/.cache
 
-# Set working directory
 WORKDIR /workspace
 
-# Labels for metadata
 LABEL maintainer="DevOps Team" \
       description="Ultra-slim Debian-based OpenTofu infrastructure tools for Azure DevOps" \
-      version="2.3.0" \
+      version="3.0.0" \
       base-image="debian:bookworm-slim" \
       tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit,aws-cli,azure-cli,shellcheck" \
       optimization="ultra-optimized-debian-enhanced"
 
-# Default command
 CMD ["/bin/bash"]

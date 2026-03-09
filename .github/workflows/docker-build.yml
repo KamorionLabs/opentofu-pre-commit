@@ -54,6 +54,15 @@ jobs:
               type=semver,pattern={{version}},suffix=-slim
               type=semver,pattern={{major}}.{{minor}},suffix=-slim
               type=raw,value=slim,enable={{is_default_branch}}
+          - name: azurelinux
+            dockerfile: Dockerfile.azurelinux
+            platforms: linux/amd64
+            tags: |
+              type=ref,event=branch,suffix=-azurelinux
+              type=ref,event=pr,suffix=-azurelinux
+              type=semver,pattern={{version}},suffix=-azurelinux
+              type=semver,pattern={{major}}.{{minor}},suffix=-azurelinux
+              type=raw,value=azurelinux,enable={{is_default_branch}}
 
     permissions:
       contents: read
@@ -92,8 +101,8 @@ jobs:
           images: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}
           tags: ${{ matrix.variant.tags }}
           labels: |
-            org.opencontainers.image.title=OpenTofu Pre-commit Tools (${{ matrix.variant.name }})
-            org.opencontainers.image.description=Comprehensive OpenTofu infrastructure tools for CI/CD pipelines
+            org.opencontainers.image.title=OpenTofu (${{ matrix.variant.name }})
+            org.opencontainers.image.description=OpenTofu infrastructure tools
             org.opencontainers.image.vendor=DevOps Team
             variant=${{ matrix.variant.name }}
 
@@ -104,8 +113,8 @@ jobs:
           images: ${{ env.DOCKERHUB_IMAGE_NAME }}
           tags: ${{ matrix.variant.tags }}
           labels: |
-            org.opencontainers.image.title=OpenTofu Pre-commit Tools (${{ matrix.variant.name }})
-            org.opencontainers.image.description=Comprehensive OpenTofu infrastructure tools for CI/CD pipelines
+            org.opencontainers.image.title=OpenTofu (${{ matrix.variant.name }})
+            org.opencontainers.image.description=OpenTofu infrastructure tools
             org.opencontainers.image.vendor=DevOps Team
             variant=${{ matrix.variant.name }}
 
@@ -131,7 +140,7 @@ jobs:
     if: github.event_name == 'pull_request'
     strategy:
       matrix:
-        variant: [ubuntu, alpine, slim]
+        variant: [ubuntu, alpine, slim, azurelinux]
 
     steps:
       - name: Checkout repository
@@ -167,26 +176,31 @@ jobs:
     if: github.event_name != 'pull_request'
     strategy:
       matrix:
-        variant: [ubuntu, alpine, slim]
+        variant: [ubuntu, alpine, slim, azurelinux]
         registry: [ghcr, dockerhub]
 
     steps:
       - name: Set image reference
         id: image-ref
         run: |
+          VARIANT="${{ matrix.variant }}"
           if [ "${{ matrix.registry }}" = "ghcr" ]; then
-            if [ "${{ matrix.variant }}" = "ubuntu" ]; then
-              echo "image-ref=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-            else
-              echo "image-ref=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${{ matrix.variant }}" >> $GITHUB_OUTPUT
-            fi
+            REG="${{ env.GHCR_REGISTRY }}"
+            IMG="${{ env.GHCR_IMAGE_NAME }}"
           else
-            if [ "${{ matrix.variant }}" = "ubuntu" ]; then
-              echo "image-ref=${{ env.DOCKERHUB_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-            else
-              echo "image-ref=${{ env.DOCKERHUB_IMAGE_NAME }}:${{ matrix.variant }}" >> $GITHUB_OUTPUT
-            fi
+            IMG="${{ env.DOCKERHUB_IMAGE_NAME }}"
           fi
+          if [ "$VARIANT" = "ubuntu" ]; then
+            TAG="latest"
+          else
+            TAG="$VARIANT"
+          fi
+          if [ "${{ matrix.registry }}" = "ghcr" ]; then
+            REF="${REG}/${IMG}:${TAG}"
+          else
+            REF="${IMG}:${TAG}"
+          fi
+          echo "image-ref=${REF}" >> $GITHUB_OUTPUT
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -244,7 +258,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ env.DOCKERHUB_IMAGE_NAME }}
           readme-filepath: ./README.md
-          short-description: "Comprehensive Docker images with OpenTofu and infrastructure tools for CI/CD pipelines, pre-commit hooks, and development environments."
+          short-description: >-
+            Docker images with OpenTofu and infrastructure
+            tools for CI/CD and pre-commit hooks.
 
       - name: Notify README sync completion
         run: |
@@ -261,7 +277,8 @@ jobs:
       - name: Notify successful deployment
         run: |
           echo "🎉 Docker images successfully built and pushed to:"
-          echo "📦 GitHub Container Registry: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
+          GHCR="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
+          echo "📦 GitHub Container Registry: ${GHCR}"
           echo "🐳 Docker Hub: ${{ env.DOCKERHUB_IMAGE_NAME }}"
           echo ""
           echo "Available tags:"
@@ -269,5 +286,6 @@ jobs:
           echo "- ubuntu"
           echo "- alpine"
           echo "- slim"
+          echo "- azurelinux"
           echo ""
           echo "📖 Documentation automatically synchronized to Docker Hub"

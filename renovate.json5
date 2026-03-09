@@ -1,0 +1,155 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:enableMajor",
+    ":semanticCommits"
+  ],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "Europe/Paris",
+  "labels": ["dependencies"],
+  "pre-commit": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "Group all Dockerfile tool version updates",
+      "matchManagers": ["custom.regex"],
+      "groupName": "dockerfile tool versions"
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Auto-merge patch-level tool updates",
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Auto-merge pre-commit hook updates",
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "ARG TOFU_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "opentofu/opentofu",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "ARG TERRAFORM_DOCS_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "terraform-docs/terraform-docs",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "ARG TFLINT_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "terraform-linters/tflint",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "ARG TRIVY_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "aquasecurity/trivy",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "ARG SHFMT_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "mvdan/sh",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "ARG GITLEAKS_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "gitleaks/gitleaks",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "ARG SHELLCHECK_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "koalaman/shellcheck",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "pre-commit==(?<currentValue>[\\d.]+)"
+      ],
+      "depNameTemplate": "pre-commit",
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "checkov==(?<currentValue>[\\d.]+)"
+      ],
+      "depNameTemplate": "checkov",
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "yamllint==(?<currentValue>[\\d.]+)"
+      ],
+      "depNameTemplate": "yamllint",
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "typos==(?<currentValue>[\\d.]+)"
+      ],
+      "depNameTemplate": "typos",
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^Dockerfile[.\\w]*$"],
+      "matchStrings": [
+        "markdownlint-cli2@(?<currentValue>[\\d.]+)"
+      ],
+      "depNameTemplate": "markdownlint-cli2",
+      "datasourceTemplate": "npm"
+    }
+  ]
+}

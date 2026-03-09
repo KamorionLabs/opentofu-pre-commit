@@ -3,7 +3,7 @@
 Comprehensive Docker images with OpenTofu and infrastructure tools for
 CI/CD pipelines, pre-commit hooks, and development environments.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Pull from Docker Hub (recommended)
@@ -29,76 +29,90 @@ docker run --rm \
   kamorion/opentofu-pre-commit:latest pre-commit run --all-files
 ```
 
-## 📦 Available Images
+## Available Images
 
-We provide three optimized variants:
+We provide four optimized variants:
 
 ### Ubuntu (Default)
 
 - **Tag**: `latest`, `ubuntu`
-- **Base**: Ubuntu 22.04
-- **Size**: ~800MB
+- **Base**: Ubuntu 24.04
 - **Best for**: Full compatibility, development environments
+- **Cloud CLIs**: AWS CLI v2, Azure CLI
 
 ```bash
-# Docker Hub
 docker pull kamorion/opentofu-pre-commit:latest
-# GitHub Container Registry
-docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:latest
 ```
 
 ### Alpine
 
 - **Tag**: `alpine`
-- **Base**: Alpine 3.19
-- **Size**: ~400MB
-- **Best for**: Production CI/CD, minimal footprint
+- **Base**: Alpine 3.21
+- **Best for**: Minimal footprint, AWS-only pipelines
+- **Cloud CLIs**: AWS CLI (no Azure CLI)
 
 ```bash
-# Docker Hub
 docker pull kamorion/opentofu-pre-commit:alpine
-# GitHub Container Registry
-docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:alpine
 ```
 
 ### Slim
 
 - **Tag**: `slim`
 - **Base**: Debian Bookworm Slim
-- **Size**: ~600MB
 - **Best for**: Balance between size and compatibility
+- **Cloud CLIs**: AWS CLI v2, Azure CLI
 
 ```bash
-# Docker Hub
 docker pull kamorion/opentofu-pre-commit:slim
-# GitHub Container Registry
-docker pull ghcr.io/kamorionlabs/opentofu-pre-commit:slim
 ```
 
-## 🛠️ Included Tools
+### Azure Linux
+
+- **Tag**: `azurelinux`
+- **Base**: Azure Linux 3.0 (from `mcr.microsoft.com/azure-cli`)
+- **Best for**: Azure DevOps pipelines, native Azure CLI support
+- **Cloud CLIs**: AWS CLI v2, Azure CLI (maintained by Microsoft)
+
+```bash
+docker pull kamorion/opentofu-pre-commit:azurelinux
+```
+
+## Included Tools
 
 ### Core Infrastructure Tools
 
-- **OpenTofu** v1.9.1 - Infrastructure as Code
-- **TFLint** v0.50.3 - Terraform/OpenTofu linter
-- **Trivy** v0.50.1 - Security scanner
-- **Terraform-docs** v0.16.0 - Documentation generator
-- **Shfmt** v3.7.0 - Shell script formatter
+| Tool | Version | Description |
+|------|---------|-------------|
+| OpenTofu | v1.11.5 | Infrastructure as Code |
+| TFLint | v0.61.0 | Terraform/OpenTofu linter |
+| Trivy | v0.69.3 | Security scanner |
+| Terraform-docs | v0.21.0 | Documentation generator |
+| Shfmt | v3.12.0 | Shell script formatter |
 
 ### Security & Quality Tools
 
-- **Pre-commit** v3.6.0 - Git hooks framework (with pre-cached hooks)
-- **Checkov** v3.2.0 - Infrastructure security scanner
-- **Gitleaks** v8.18.0 - Secret detection
-- **Yamllint** v1.35.0 - YAML linter
-- **Typos** v1.16.0 - Spell checker
-- **Markdownlint-cli2** v0.11.0 - Markdown linter
+| Tool | Version | Description |
+|------|---------|-------------|
+| Pre-commit | v4.5.1 | Git hooks framework (with pre-cached hooks) |
+| Checkov | v3.2.508 | Infrastructure security scanner |
+| Gitleaks | v8.30.0 | Secret detection |
+| Yamllint | v1.38.0 | YAML linter |
+| Typos | v1.16.0 | Spell checker |
+| Markdownlint-cli2 | v0.21.0 | Markdown linter |
+| Shellcheck | v0.11.0 | Shell script analyzer |
+
+### Cloud CLIs
+
+| Tool | Ubuntu | Slim | Alpine | Azure Linux |
+|------|--------|------|--------|-------------|
+| AWS CLI v2 | Yes | Yes | Yes (v1) | Yes |
+| Azure CLI | Yes | Yes | No | Yes (native) |
 
 ### System Tools
 
-- Git, Curl, JQ, Python3, Node.js, NPM
+Git, Curl, JQ, Python3, Node.js, NPM
 
-## 🔧 Usage Examples
+## Usage Examples
 
 ### Basic OpenTofu Commands
 
@@ -193,7 +207,7 @@ docker run -it --rm \
 docker run --rm kamorion/opentofu-pre-commit:latest verify
 ```
 
-## 🔄 CI/CD Integration
+## CI/CD Integration
 
 ### GitHub Actions
 
@@ -225,7 +239,7 @@ jobs:
 pool:
   vmImage: 'ubuntu-latest'
 
-container: kamorion/opentofu-pre-commit:slim
+container: kamorion/opentofu-pre-commit:azurelinux
 
 steps:
 - script: |
@@ -263,7 +277,7 @@ security:
     - trivy fs .
 ```
 
-## 🪝 Pre-commit Hooks
+## Pre-commit Hooks
 
 Create `.pre-commit-config.yaml`:
 
@@ -302,36 +316,7 @@ repos:
         files: \.tf$
 ```
 
-## 🏗️ Architecture
-
-### Multi-stage Builds
-
-All images use multi-stage builds for optimal size and security:
-
-1. **Base Stage**: Install system dependencies
-2. **Tools Stage**: Download and install binary tools
-3. **Providers Stage**: Pre-cache OpenTofu providers
-4. **Final Stage**: Copy only necessary files
-
-### Provider Caching
-
-Images include pre-cached OpenTofu providers for faster initialization:
-
-- AWS Provider ~5.0
-- Random Provider ~3.1
-- Null Provider ~3.1
-- Local Provider ~2.1
-- TLS Provider ~4.0
-
-### Azure DevOps Compatibility
-
-Special user and permission setup for Azure DevOps agents:
-
-- User: `vsts_azpcontainer` (UID: 1001)
-- Group: `docker_azpcontainer` (GID: 1001)
-- Proper permissions for plugin cache and workspace
-
-## 🔧 Customization
+## Customization
 
 ### Environment Variables
 
@@ -361,19 +346,64 @@ docker run --rm \
   kamorion/opentofu-pre-commit:latest
 ```
 
-## 📊 Image Comparison
+## Image Comparison
 
-| Feature | Ubuntu | Alpine | Slim |
-|---------|--------|--------|------|
-| Base OS | Ubuntu 22.04 | Alpine 3.19 | Debian Bookworm |
-| Size | ~800MB | ~400MB | ~600MB |
-| glibc | ✅ | ❌ (musl) | ✅ |
-| Package Manager | apt | apk | apt |
-| Security Updates | Regular | Frequent | Regular |
-| Compatibility | Highest | Good | High |
-| Performance | Good | Excellent | Good |
+| Feature | Ubuntu | Alpine | Slim | Azure Linux |
+|---------|--------|--------|------|-------------|
+| Base OS | Ubuntu 24.04 | Alpine 3.21 | Debian Bookworm | Azure Linux 3.0 |
+| glibc | Yes | No (musl) | Yes | Yes |
+| Package Manager | apt | apk | apt | tdnf |
+| AWS CLI | v2 | v1 (apk) | v2 | v2 |
+| Azure CLI | Yes | No | Yes | Yes (native) |
+| Provider Cache | No | Yes | Yes | No |
+| Compatibility | Highest | Good | High | High |
+| Best For | Dev env | Minimal CI | Balanced | Azure DevOps |
 
-## 🛡️ Security
+## Dependency Management
+
+This project uses [Renovate](https://docs.renovatebot.com/) for automated
+dependency updates. Renovate manages:
+
+- Docker base image versions
+- Binary tool versions (via ARG in Dockerfiles)
+- Python package versions (pip)
+- Node.js package versions (npm)
+- Pre-commit hook versions
+- GitHub Actions versions
+
+To enable Renovate, install the
+[Renovate GitHub App](https://github.com/apps/renovate) on the repository.
+
+## Architecture
+
+### Multi-stage Builds
+
+Alpine and Slim images use multi-stage builds for optimal size and security:
+
+1. **Base Stage**: Install system dependencies
+2. **Tools Stage**: Download and install binary tools
+3. **Providers Stage**: Pre-cache OpenTofu providers
+4. **Final Stage**: Copy only necessary files
+
+### Provider Caching (Alpine & Slim)
+
+Images include pre-cached OpenTofu providers for faster initialization:
+
+- AWS Provider ~5.0
+- Random Provider ~3.1
+- Null Provider ~3.1
+- Local Provider ~2.1
+- TLS Provider ~4.0
+
+### Azure DevOps Compatibility
+
+Special user and permission setup for Azure DevOps agents:
+
+- User: `vsts_azpcontainer` (UID: 1001)
+- Group: `docker_azpcontainer` (GID: 1001)
+- Proper permissions for plugin cache and workspace
+
+## Security
 
 ### Vulnerability Scanning
 
@@ -384,24 +414,15 @@ All images are automatically scanned with Trivy for vulnerabilities.
 - No unnecessary packages
 - Non-root user support
 - Stripped binaries where possible
-- Regular base image updates
+- Regular base image updates via Renovate
 
 ### Supply Chain Security
 
 - Pinned tool versions
-- Checksum verification
 - Multi-stage builds
 - Minimal final layer
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with all image variants
-5. Submit a pull request
-
-### Building Locally
+## Building Locally
 
 ```bash
 # Build Ubuntu variant
@@ -412,6 +433,9 @@ docker build -f Dockerfile.alpine -t opentofu-pre-commit:alpine .
 
 # Build Slim variant
 docker build -f Dockerfile.slim -t opentofu-pre-commit:slim .
+
+# Build Azure Linux variant
+docker build -f Dockerfile.azurelinux -t opentofu-pre-commit:azurelinux .
 ```
 
 ### Testing
@@ -420,37 +444,42 @@ docker build -f Dockerfile.slim -t opentofu-pre-commit:slim .
 # Test tools installation
 docker run --rm opentofu-pre-commit:ubuntu verify
 
-# Test plugin cache
-docker run --rm opentofu-pre-commit:ubuntu test-plugin-cache
+# Test plugin cache (alpine/slim only)
+docker run --rm opentofu-pre-commit:slim test-plugin-cache
 ```
 
-## 📝 License
-
-This project is licensed under the MIT License - see the
-[LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- 📖 [Documentation](https://github.com/kamorionlabs/opentofu-pre-commit/wiki)
-- 🐛 [Issue Tracker](https://github.com/kamorionlabs/opentofu-pre-commit/issues)
-- 💬 [Discussions](https://github.com/kamorionlabs/opentofu-pre-commit/discussions)
-
-## 🏷️ Tags and Versions
+## Tags and Versions
 
 ### Latest Tags
 
 - `latest` - Ubuntu-based image (default)
-- `ubuntu` - Ubuntu 22.04 based
-- `alpine` - Alpine 3.19 based
+- `ubuntu` - Ubuntu 24.04 based
+- `alpine` - Alpine 3.21 based
 - `slim` - Debian Bookworm Slim based
+- `azurelinux` - Azure Linux 3.0 based
 
 ### Version Tags
 
-- `v1.0.0`, `v1.0`, `v1` - Semantic versioning
-- `v1.0.0-alpine`, `v1.0.0-slim` - Variant-specific versions
+- `v3.0.0`, `v3.0` - Semantic versioning
+- `v3.0.0-alpine`, `v3.0.0-slim`, `v3.0.0-azurelinux` - Variant-specific versions
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test with all image variants
+5. Submit a pull request
+
+## Support
+
+- [Documentation](https://github.com/kamorionlabs/opentofu-pre-commit/wiki)
+- [Issue Tracker](https://github.com/kamorionlabs/opentofu-pre-commit/issues)
+- [Discussions](https://github.com/kamorionlabs/opentofu-pre-commit/discussions)
+
+## License
+
+This project is licensed under the MIT License - see the
+[LICENSE](LICENSE) file for details.
 
 Last updated: 2025-01-06 16:09:15 UTC
-
----
-
-## Made with ❤️ for the Infrastructure as Code community
