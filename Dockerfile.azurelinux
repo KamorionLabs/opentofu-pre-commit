@@ -8,7 +8,7 @@ ENV TZ=Europe/Paris \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PATH="/usr/local/bin:$PATH"
+    PATH="/usr/local/bin:/usr/local/sbin:/root/.local/bin:$PATH"
 
 # Tool versions
 ARG TOFU_VERSION=1.11.5
@@ -130,9 +130,16 @@ RUN pip3 install --no-cache-dir \
         checkov==3.2.508 \
         yamllint==1.38.0 \
         typos==1.16.0 \
-    && ln -sf "$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))')/pre-commit" /usr/local/bin/pre-commit \
-    && ln -sf "$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))')/checkov" /usr/local/bin/checkov \
-    && ln -sf "$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))')/yamllint" /usr/local/bin/yamllint \
+    && SCRIPTS=$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))') \
+    && echo "Python scripts dir: ${SCRIPTS}" \
+    && ls -la "${SCRIPTS}/" \
+    && for bin in pre-commit checkov yamllint; do \
+        if [ -f "${SCRIPTS}/${bin}" ]; then \
+            ln -sf "${SCRIPTS}/${bin}" "/usr/local/bin/${bin}"; \
+        fi; \
+    done \
+    && which pre-commit || (echo "pre-commit not found, checking PATH" && find / -name pre-commit -type f 2>/dev/null) \
+    && export PATH="${SCRIPTS}:${PATH}" \
     && pre-commit --version \
     && npm install -g --no-optional --no-audit --no-fund \
         markdownlint-cli2@0.21.0 \
