@@ -167,10 +167,10 @@ WORKDIR /workspace
 
 # Labels for metadata
 LABEL maintainer="DevOps Team" \
-      description="Standard Ubuntu-based OpenTofu infrastructure tools for Azure DevOps" \
+      description="Standard Ubuntu-based OpenTofu infrastructure tools" \
       version="2.0.0" \
       base-image="ubuntu:24.04" \
-      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit,aws-cli,azure-cli,shellcheck"
+      tools="opentofu,tflint,trivy,checkov,terraform-docs,markdownlint-cli2,gitleaks,typos,yamllint,shfmt,pre-commit,aws-cli,shellcheck"
 
 # Default command
 CMD ["/bin/bash"]
