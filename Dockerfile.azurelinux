@@ -124,23 +124,19 @@ RUN set -eux; \
     cd /; \
     rm -rf /tmp/downloads
 
-# Install Python tools (glibc-based, pip installs work natively)
-RUN pip3 install --no-cache-dir \
+# Install Python tools using system python3 (not Azure CLI's venv pip)
+RUN python3 -m pip install --no-cache-dir \
         pre-commit==4.5.1 \
         checkov==3.2.508 \
         yamllint==1.38.0 \
         typos==1.16.0 \
+    && python3 -m pre_commit --version \
     && SCRIPTS=$(python3 -c 'import sysconfig; print(sysconfig.get_path("scripts"))') \
-    && echo "Python scripts dir: ${SCRIPTS}" \
-    && ls -la "${SCRIPTS}/" \
     && for bin in pre-commit checkov yamllint; do \
         if [ -f "${SCRIPTS}/${bin}" ]; then \
             ln -sf "${SCRIPTS}/${bin}" "/usr/local/bin/${bin}"; \
         fi; \
     done \
-    && which pre-commit || (echo "pre-commit not found, checking PATH" && find / -name pre-commit -type f 2>/dev/null) \
-    && export PATH="${SCRIPTS}:${PATH}" \
-    && pre-commit --version \
     && npm install -g --no-optional --no-audit --no-fund \
         markdownlint-cli2@0.21.0 \
     && rm -rf /root/.cache /root/.npm \
