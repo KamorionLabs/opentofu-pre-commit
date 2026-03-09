@@ -164,7 +164,7 @@ RUN cd /workspace \
     && git config user.name "Docker Build" \
     && git add .pre-commit-config.yaml \
     && git commit -m "Initial commit for pre-commit cache" \
-    && pre-commit install-hooks \
+    && python3 -m pre_commit install-hooks \
     && rm -rf .git \
     && echo "Pre-commit hooks cached successfully"
 
