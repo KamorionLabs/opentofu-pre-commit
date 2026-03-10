@@ -57,3 +57,10 @@ jobs:
             --title "${{ steps.next.outputs.version }}" \
             --generate-notes \
             --latest
+
+      - name: Trigger Docker build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run docker-build.yml \
+            --ref "${{ steps.next.outputs.version }}"
